@@ -323,8 +323,8 @@ type ExceptionIndexTableValue struct {
 // http://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html#jvms-4.7.4
 type StackMapTableAttribute struct {
 	AttributeInfo
-	// NumberOfEntries uint16
-	// Entries []StackMapFrame
+	// FIXME: NumberOfEntries uint16
+	// FIXME: Entries []StackMapFrame
 	Data []uint8
 }
 
@@ -446,35 +446,40 @@ type DeprecatedAttribute struct {
 // http://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html#jvms-4.7.16
 type RuntimeVisibleAnnotationsAttribute struct {
 	AttributeInfo
-	// NumAnnotations uint16
-	// Annotations []Annotation
+	// FIXME: NumAnnotations uint16
+	// FIXME: Annotations []Annotation
+	Data []uint8
 }
 
 // http://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html#jvms-4.7.17
 type RuntimeInvisibleAnnotationsAttribute struct {
 	AttributeInfo
-	// NumAnnotations uint16
-	// Annotations []Annotation
+	// FIXME: NumAnnotations uint16
+	// FIXME: Annotations []Annotation
+	Data []uint8
 }
 
 // http://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html#jvms-4.7.18
 type RuntimeVisibleParameterAnnotationsAttribute struct {
 	AttributeInfo
-	// NumParameters uint8
-	// ParameterAnnotations []ParameterAnnotation
+	// FIXME: NumParameters uint8
+	// FIXME: ParameterAnnotations []ParameterAnnotation
+	Data []uint8
 }
 
 // http://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html#jvms-4.7.19
 type RuntimeInvisibleParameterAnnotationsAttribute struct {
 	AttributeInfo
-	// NumParameters uint8
-	// ParameterAnnotations []ParameterAnnotation
+	// FIXME: NumParameters uint8
+	// FIXME: ParameterAnnotations []ParameterAnnotation
+	Data []uint8
 }
 
 // http://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html#jvms-4.7.20
 type AnnotationDefaultAttribute struct {
 	AttributeInfo
-	// DefaultValue ElementValue
+	// FIXME: DefaultValue ElementValue
+	Data []uint8
 }
 
 // http://docs.oracle.com/javase/specs/jvms/se7/html/jvms-4.html#jvms-4.7.21
@@ -1194,45 +1199,45 @@ func readAttributes(r io.Reader, constPool ConstantPool) (uint16, []Attribute, e
 
 		var attr Attribute
 		switch constPool.GetUtf8(attrBase.AttributeNameIndex) {
-		case "ConstantValueAttribute":
+		case "ConstantValue":
 			attr = &ConstantValueAttribute{AttributeInfo: attrBase}
-		case "CodeAttribute":
+		case "Code":
 			attr = &CodeAttribute{AttributeInfo: attrBase}
-		case "StackMapTableAttribute":
+		case "StackMapTable":
 			attr = &StackMapTableAttribute{AttributeInfo: attrBase}
-		case "ExceptionsAttribute":
+		case "Exceptions":
 			attr = &ExceptionsAttribute{AttributeInfo: attrBase}
-		case "InnerClassesAttribute":
+		case "InnerClasses":
 			attr = &InnerClassesAttribute{AttributeInfo: attrBase}
-		case "EnclosingMethodAttribute":
+		case "EnclosingMethod":
 			attr = &EnclosingMethodAttribute{AttributeInfo: attrBase}
-		case "SyntheticAttribute":
+		case "Synthetic":
 			attr = &SyntheticAttribute{AttributeInfo: attrBase}
-		case "SignatureAttribute":
+		case "Signature":
 			attr = &SignatureAttribute{AttributeInfo: attrBase}
-		case "SourceFileAttribute":
+		case "SourceFile":
 			attr = &SourceFileAttribute{AttributeInfo: attrBase}
-		case "SourceDebugExtensionAttribute":
+		case "SourceDebugExtension":
 			attr = &SourceDebugExtensionAttribute{AttributeInfo: attrBase}
-		case "LineNumberTableAttribute":
+		case "LineNumberTable":
 			attr = &LineNumberTableAttribute{AttributeInfo: attrBase}
-		case "LocalVariableTableAttribute":
+		case "LocalVariableTable":
 			attr = &LocalVariableTableAttribute{AttributeInfo: attrBase}
-		case "LocalVariableTypeTableAttribute":
+		case "LocalVariableTypeTable":
 			attr = &LocalVariableTypeTableAttribute{AttributeInfo: attrBase}
-		case "DeprecatedAttribute":
+		case "Deprecated":
 			attr = &DeprecatedAttribute{AttributeInfo: attrBase}
-		case "RuntimeVisibleAnnotationsAttribute":
+		case "RuntimeVisibleAnnotations":
 			attr = &RuntimeVisibleAnnotationsAttribute{AttributeInfo: attrBase}
-		case "RuntimeInvisibleAnnotationsAttribute":
+		case "RuntimeInvisibleAnnotations":
 			attr = &RuntimeInvisibleAnnotationsAttribute{AttributeInfo: attrBase}
-		case "RuntimeVisibleParameterAnnotationsAttribute":
+		case "RuntimeVisibleParameterAnnotations":
 			attr = &RuntimeVisibleParameterAnnotationsAttribute{AttributeInfo: attrBase}
-		case "RuntimeInvisibleParameterAnnotationsAttribute":
+		case "RuntimeInvisibleParameterAnnotations":
 			attr = &RuntimeInvisibleParameterAnnotationsAttribute{AttributeInfo: attrBase}
-		case "AnnotationDefaultAttribute":
+		case "AnnotationDefault":
 			attr = &AnnotationDefaultAttribute{AttributeInfo: attrBase}
-		case "BootstrapMethodsAttribute":
+		case "BootstrapMethods":
 			attr = &BootstrapMethodsAttribute{AttributeInfo: attrBase}
 		default:
 			attr = &UnknownAttribute{AttributeInfo: attrBase}
@@ -1757,11 +1762,20 @@ func (a *RuntimeVisibleAnnotationsAttribute) GetTag() AttributeType {
 }
 
 func (a *RuntimeVisibleAnnotationsAttribute) Read(r io.Reader, _ ConstantPool) error {
-	return nil
+	a.Data = make([]uint8, a.AttributeLength)
+	return binary.Read(r, ByteOrder, a.Data)
 }
 
 func (a *RuntimeVisibleAnnotationsAttribute) Write(w io.Writer) error {
-	return binary.Write(w, ByteOrder, a)
+	if err := binary.Write(w, ByteOrder, a.AttributeInfo); err != nil {
+		return err
+	}
+
+	if err := binary.Write(w, ByteOrder, a.Data); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (a *RuntimeInvisibleAnnotationsAttribute) RuntimeInvisibleAnnotationsAttribute() *RuntimeInvisibleAnnotationsAttribute {
@@ -1773,11 +1787,20 @@ func (a *RuntimeInvisibleAnnotationsAttribute) GetTag() AttributeType {
 }
 
 func (a *RuntimeInvisibleAnnotationsAttribute) Read(r io.Reader, _ ConstantPool) error {
-	return nil
+	a.Data = make([]uint8, a.AttributeLength)
+	return binary.Read(r, ByteOrder, a.Data)
 }
 
 func (a *RuntimeInvisibleAnnotationsAttribute) Write(w io.Writer) error {
-	return binary.Write(w, ByteOrder, a)
+	if err := binary.Write(w, ByteOrder, a.AttributeInfo); err != nil {
+		return err
+	}
+
+	if err := binary.Write(w, ByteOrder, a.Data); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (a *RuntimeVisibleParameterAnnotationsAttribute) RuntimeVisibleParameterAnnotationsAttribute() *RuntimeVisibleParameterAnnotationsAttribute {
@@ -1789,11 +1812,20 @@ func (a *RuntimeVisibleParameterAnnotationsAttribute) GetTag() AttributeType {
 }
 
 func (a *RuntimeVisibleParameterAnnotationsAttribute) Read(r io.Reader, _ ConstantPool) error {
-	return nil
+	a.Data = make([]uint8, a.AttributeLength)
+	return binary.Read(r, ByteOrder, a.Data)
 }
 
 func (a *RuntimeVisibleParameterAnnotationsAttribute) Write(w io.Writer) error {
-	return binary.Write(w, ByteOrder, a)
+	if err := binary.Write(w, ByteOrder, a.AttributeInfo); err != nil {
+		return err
+	}
+
+	if err := binary.Write(w, ByteOrder, a.Data); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (a *RuntimeInvisibleParameterAnnotationsAttribute) RuntimeInvisibleParameterAnnotationsAttribute() *RuntimeInvisibleParameterAnnotationsAttribute {
@@ -1805,11 +1837,20 @@ func (a *RuntimeInvisibleParameterAnnotationsAttribute) GetTag() AttributeType {
 }
 
 func (a *RuntimeInvisibleParameterAnnotationsAttribute) Read(r io.Reader, _ ConstantPool) error {
-	return nil
+	a.Data = make([]uint8, a.AttributeLength)
+	return binary.Read(r, ByteOrder, a.Data)
 }
 
 func (a *RuntimeInvisibleParameterAnnotationsAttribute) Write(w io.Writer) error {
-	return binary.Write(w, ByteOrder, a)
+	if err := binary.Write(w, ByteOrder, a.AttributeInfo); err != nil {
+		return err
+	}
+
+	if err := binary.Write(w, ByteOrder, a.Data); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (a *AnnotationDefaultAttribute) AnnotationDefaultAttribute() *AnnotationDefaultAttribute {
@@ -1821,11 +1862,20 @@ func (a *AnnotationDefaultAttribute) GetTag() AttributeType {
 }
 
 func (a *AnnotationDefaultAttribute) Read(r io.Reader, _ ConstantPool) error {
-	return nil
+	a.Data = make([]uint8, a.AttributeLength)
+	return binary.Read(r, ByteOrder, a.Data)
 }
 
 func (a *AnnotationDefaultAttribute) Write(w io.Writer) error {
-	return binary.Write(w, ByteOrder, a)
+	if err := binary.Write(w, ByteOrder, a.AttributeInfo); err != nil {
+		return err
+	}
+
+	if err := binary.Write(w, ByteOrder, a.Data); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func (a *BootstrapMethodsAttribute) BootstrapMethodsAttribute() *BootstrapMethodsAttribute {
